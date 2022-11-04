@@ -1,0 +1,39 @@
+#pragma once
+
+#include <ntifs.h>
+#include <ntddk.h>
+#include <ntdef.h>
+
+#define SIOCTL_TYPE 40000
+#define IO_RANDOM_NUMBER_REQUEST CTL_CODE( SIOCTL_TYPE, 0x902, METHOD_BUFFERED, FILE_ANY_ACCESS  )
+#define IO_READ_REQUEST CTL_CODE(SIOCTL_TYPE, 0x903, METHOD_BUFFERED, FILE_ANY_ACCESS)
+#define IO_WRITE_REQUEST CTL_CODE(SIOCTL_TYPE, 0x904, METHOD_BUFFERED, FILE_ANY_ACCESS)
+
+typedef struct _RANDOM_NUMBER_REQUEST {
+	int Value;
+} RANDOM_NUMBER_REQUEST, * PRANDOM_NUMBER_REQUEST;
+
+typedef struct _KERNEL_READ_REQUEST
+{
+	ULONG ProcessId;
+	long long Address;
+	ULONG Response;
+	ULONG Size;
+
+} KERNEL_READ_REQUEST, * PKERNEL_READ_REQUEST;
+
+typedef struct _KERNEL_WRITE_REQUEST
+{
+	ULONG ProcessId;
+	long long Address;
+	ULONG Value;
+	ULONG Size;
+
+} KERNEL_WRITE_REQUEST, * PKERNEL_WRITE_REQUEST;
+
+NTSTATUS DriverEntry(PDRIVER_OBJECT pDriverObject, PUNICODE_STRING pRegistryPath);
+NTSTATUS UnloadDriver(PDRIVER_OBJECT pDriverObject);
+void ImageLoadCallback(PUNICODE_STRING FullImageName, HANDLE ProcessId, PIMAGE_INFO ImageInfo);
+NTSTATUS IoControl(PDEVICE_OBJECT DeviceObject, PIRP Irp);
+NTSTATUS CreateCall(PDEVICE_OBJECT DeviceObject, PIRP irp);
+NTSTATUS CloseCall(PDEVICE_OBJECT DeviceObject, PIRP irp);
