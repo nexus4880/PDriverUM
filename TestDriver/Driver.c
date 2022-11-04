@@ -1,44 +1,48 @@
-#pragma warning (disable : 4100 4101 4242 4244)
+#pragma warning (disable : 4100)
+
+#define PRINT_ERRORS 0
 #include "Driver.h"
 #include "Memory.h"
 
-PDEVICE_OBJECT pDeviceObject;
-UNICODE_STRING dev, dos;
+PDEVICE_OBJECT _pDeviceObject;
+UNICODE_STRING _dev, _dos;
 
-NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath) {
+NTSTATUS DriverEntry(PDRIVER_OBJECT pDriverObject, PUNICODE_STRING registryPath) {
 	DbgPrintEx(0, 0, "Initializing TestDriver");
-	RtlInitUnicodeString(&dev, L"\\Device\\TestDriver");
-	RtlInitUnicodeString(&dos, L"\\DosDevices\\TestDriver");
-	NTSTATUS status;
-	if (!NT_SUCCESS(status = IoCreateDevice(DriverObject, 0, &dev, FILE_DEVICE_UNKNOWN, FILE_DEVICE_SECURE_OPEN, FALSE, &pDeviceObject))) {
+	RtlInitUnicodeString(&_dev, L"\\Device\\TestDriver");
+	RtlInitUnicodeString(&_dos, L"\\DosDevices\\TestDriver");
+	NTSTATUS status = IoCreateDevice(pDriverObject, 0, &_dev, FILE_DEVICE_UNKNOWN, FILE_DEVICE_SECURE_OPEN, FALSE, &_pDeviceObject);
+	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(0, 0, "IoCreateDevice failed");
 
 		return status;
 	}
 
 	DbgPrintEx(0, 0, "IoCreateDevice success");
-	if (!NT_SUCCESS(status = IoCreateSymbolicLink(&dos, &dev))) {
-		IoDeleteDevice(pDeviceObject);
+	status = IoCreateSymbolicLink(&_dos, &_dev);
+	if (!NT_SUCCESS(status)) {
+		IoDeleteDevice(_pDeviceObject);
 		DbgPrintEx(0, 0, "IoCreateSymbolicLink failed");
 
 		return status;
 	}
 
 	DbgPrintEx(0, 0, "IoCreateSymbolicLink success");
-	if (!NT_SUCCESS(status = PsSetLoadImageNotifyRoutine(ImageLoadCallback))) {
-		IoDeleteDevice(pDeviceObject);
-		IoDeleteSymbolicLink(&dos);
+	status = PsSetLoadImageNotifyRoutine(ImageLoadCallback);
+	if (!NT_SUCCESS(status)) {
+		IoDeleteDevice(_pDeviceObject);
+		IoDeleteSymbolicLink(&_dos);
 		DbgPrintEx(0, 0, "PsSetLoadImageNotifyRoutine failed");
 
 		return status;
 	}
 
-	DriverObject->MajorFunction[IRP_MJ_CREATE] = CreateCall;
-	DriverObject->MajorFunction[IRP_MJ_CLOSE] = CloseCall;
-	DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = IoControl;
-	DriverObject->DriverUnload = UnloadDriver;
-	DriverObject->Flags |= DO_DIRECT_IO;
-	DriverObject->Flags &= ~DO_DEVICE_INITIALIZING;
+	pDriverObject->MajorFunction[IRP_MJ_CREATE] = CreateCall;
+	pDriverObject->MajorFunction[IRP_MJ_CLOSE] = CloseCall;
+	pDriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = IoControl;
+	pDriverObject->DriverUnload = UnloadDriver;
+	pDriverObject->Flags |= DO_DIRECT_IO;
+	pDriverObject->Flags &= ~DO_DEVICE_INITIALIZING;
 
 	DbgPrintEx(0, 0, "Initialized TestDriver");
 
@@ -48,10 +52,11 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath) 
 NTSTATUS UnloadDriver(PDRIVER_OBJECT pDriverObject)
 {
 	DbgPrintEx(0, 0, "Unloading TestDriver");
-	if (PsRemoveLoadImageNotifyRoutine(ImageLoadCallback) != STATUS_SUCCESS) {
+	if (!NT_SUCCESS(PsRemoveLoadImageNotifyRoutine(ImageLoadCallback))) {
 		DbgPrintEx(0, 0, "Failed to remove load image routine");
 	}
-	if (IoDeleteSymbolicLink(&dos) != STATUS_SUCCESS) {
+
+	if (!NT_SUCCESS(IoDeleteSymbolicLink(&_dos))) {
 		DbgPrintEx(0, 0, "Failed to delete symbolic link");
 	}
 	
@@ -64,88 +69,93 @@ NTSTATUS UnloadDriver(PDRIVER_OBJECT pDriverObject)
 	return STATUS_SUCCESS;
 }
 
-void ImageLoadCallback(PUNICODE_STRING FullImageName, HANDLE ProcessId, PIMAGE_INFO ImageInfo)
+// (wcsstr(FullImageName->Buffer, L"\\path\\to\\file.dll")
+void ImageLoadCallback(PUNICODE_STRING fullImageName, HANDLE processId, PIMAGE_INFO pImageInfo)
 {
-	/*
-	if (wcsstr(FullImageName->Buffer, L"\\csgo\\bin\\client.dll")) {
-		DbgPrintEx(0, 0, "Process started %ls", FullImageName->Buffer);
-	}
-	*/
 }
 
-NTSTATUS IoControl(PDEVICE_OBJECT DeviceObject, PIRP Irp)
+NTSTATUS IoControl(PDEVICE_OBJECT pDeviceObject, PIRP pIrp)
 {
-	DbgPrintEx(0, 0, "IoControl");
 	NTSTATUS status = STATUS_SUCCESS;
 	ULONG bytes = 0;
-	PIO_STACK_LOCATION stack = IoGetCurrentIrpStackLocation(Irp);
+	PIO_STACK_LOCATION stack = IoGetCurrentIrpStackLocation(pIrp);
 	ULONG controlCode = stack->Parameters.DeviceIoControl.IoControlCode;
-	if (controlCode == IO_RANDOM_NUMBER_REQUEST) {
-		DbgPrintEx(0, 0, "IOCTL_SIOCTL_METHOD_BUFFERED");
-		PRANDOM_NUMBER_REQUEST data = (PRANDOM_NUMBER_REQUEST)Irp->AssociatedIrp.SystemBuffer;
-		data->Value = 69420;
-		bytes = sizeof(RANDOM_NUMBER_REQUEST);
-	} else if (controlCode == IO_READ_REQUEST) {
-		DbgPrintEx(0, 0, "IO_READ_REQUEST");
-		PKERNEL_READ_REQUEST data = (PKERNEL_READ_REQUEST)Irp->AssociatedIrp.SystemBuffer;
-		PEPROCESS proc;
-		status = PsLookupProcessByProcessId((HANDLE)data->ProcessId, &proc);
-		if (NT_SUCCESS(status)) {
-			status = KeReadProcessMemory(proc, (PVOID)data->Address, &data->Response, data->Size);
-			if (!NT_SUCCESS(status)) {
-				DbgPrintEx(0, 0, "failed to KeReadProcessMemory");
+	PEPROCESS proc;
+	switch (controlCode) {
+		case IO_READ_REQUEST: {
+			PKERNEL_READ_REQUEST readRequest = (PKERNEL_READ_REQUEST)pIrp->AssociatedIrp.SystemBuffer;
+			status = PsLookupProcessByProcessId((HANDLE)readRequest->ProcessId, &proc);
+			if (NT_SUCCESS(status)) {
+				status = KeReadProcessMemory(proc, (PVOID)readRequest->Address, &readRequest->Value, readRequest->Size);
+				if (!NT_SUCCESS(status)) {
+#if PRINT_ERRORS
+					DbgPrintEx(0, 0, "failed to KeReadProcessMemory");
+#endif
+				}
 			}
+			else {
+#if PRINT_ERRORS
+				DbgPrintEx(0, 0, "failed to PsLookupProcessByProcessId");
+#endif
+			}
+
+			DbgPrintEx(0, 0, "IO_READ_REQUEST: PID(%lu) | READ_VALUE(%lu) | ADDRESS(%lli) | SIZE(%i)", readRequest->ProcessId, readRequest->Value, readRequest->Address, readRequest->Size);
+			bytes = sizeof(KERNEL_READ_REQUEST);
+			break;
 		}
-		else {
-			DbgPrintEx(0, 0, "failed to PsLookupProcessByProcessId");
+		case IO_WRITE_REQUEST: {
+			PKERNEL_WRITE_REQUEST writeRequest = (PKERNEL_WRITE_REQUEST)pIrp->AssociatedIrp.SystemBuffer;
+			PEPROCESS Process;
+			status = PsLookupProcessByProcessId((HANDLE)writeRequest->ProcessId, &Process);
+			if (NT_SUCCESS(status)) {
+				status = KeWriteProcessMemory(Process, &writeRequest->Value, (PVOID)writeRequest->Address, writeRequest->Size);
+				if (!NT_SUCCESS(status)) {
+#if PRINT_ERRORS
+					DbgPrintEx(0, 0, "KeWriteProcessMemory failed");
+#endif
+				}
+			}
+			else {
+#if PRINT_ERRORS
+				DbgPrintEx(0, 0, "PsLookupProcessByProcessId failed");
+#endif
+			}
+
+			DbgPrintEx(0, 0, "IO_WRITE_REQUEST: PID(%lu) | WRITTEN_VALUE(%lu) | ADDRESS(%lli) | SIZE(%i)", writeRequest->ProcessId, writeRequest->Value, writeRequest->Address, writeRequest->Size);
+			bytes = sizeof(KERNEL_WRITE_REQUEST);
+			break;
 		}
-
-		DbgPrintEx(0, 0, "Read Params:  %lu, %lld \n", data->ProcessId, data->Address);
-		DbgPrintEx(0, 0, "Value: %lu \n", data->Response);
-
-		bytes = sizeof(KERNEL_READ_REQUEST);
-	} else if (controlCode == IO_WRITE_REQUEST) {
-		DbgPrintEx(0, 0, "IO_WRITE_REQUEST");
-		PKERNEL_WRITE_REQUEST WriteInput = (PKERNEL_WRITE_REQUEST)Irp->AssociatedIrp.SystemBuffer;
-
-		PEPROCESS Process;
-		if (NT_SUCCESS(PsLookupProcessByProcessId((HANDLE)WriteInput->ProcessId, &Process)))
-			KeWriteProcessMemory(Process, &WriteInput->Value,
-				(PVOID)WriteInput->Address, WriteInput->Size);
-
-		DbgPrintEx(0, 0, "Write Params:  %lu, %#010x \n", WriteInput->Value, WriteInput->Address);
-
-		bytes = sizeof(KERNEL_WRITE_REQUEST);
+		default: {
+			DbgPrintEx(0, 0, "Unhandled code %ul", controlCode);
+			status = STATUS_INVALID_PARAMETER;
+			bytes = 0;
+			break;
+		}
 	}
-	else {
-		DbgPrintEx(0, 0, "Unhandled code %ul", controlCode);
-		status = STATUS_INVALID_PARAMETER;
-		bytes = 0;
-	}
-
-	Irp->IoStatus.Status = status;
-	Irp->IoStatus.Information = bytes;
-	IoCompleteRequest(Irp, IO_NO_INCREMENT);
+	
+	pIrp->IoStatus.Status = status;
+	pIrp->IoStatus.Information = bytes;
+	IoCompleteRequest(pIrp, IO_NO_INCREMENT);
 
 	return status;
 }
 
-NTSTATUS CreateCall(PDEVICE_OBJECT DeviceObject, PIRP irp)
+NTSTATUS CreateCall(PDEVICE_OBJECT pDeviceObject, PIRP pIrp)
 {
 	DbgPrintEx(0, 0, "CreateCall");
-	irp->IoStatus.Status = STATUS_SUCCESS;
-	irp->IoStatus.Information = 0;
-	IoCompleteRequest(irp, IO_NO_INCREMENT);
+	pIrp->IoStatus.Status = STATUS_SUCCESS;
+	pIrp->IoStatus.Information = 0;
+	IoCompleteRequest(pIrp, IO_NO_INCREMENT);
 
 	return STATUS_SUCCESS;
 }
 
-NTSTATUS CloseCall(PDEVICE_OBJECT DeviceObject, PIRP irp)
+NTSTATUS CloseCall(PDEVICE_OBJECT pDeviceObject, PIRP pIrp)
 {
 	DbgPrintEx(0, 0, "CloseCall");
-	irp->IoStatus.Status = STATUS_SUCCESS;
-	irp->IoStatus.Information = 0;
-	IoCompleteRequest(irp, IO_NO_INCREMENT);
+	pIrp->IoStatus.Status = STATUS_SUCCESS;
+	pIrp->IoStatus.Information = 0;
+	IoCompleteRequest(pIrp, IO_NO_INCREMENT);
 	
 	return STATUS_SUCCESS;
 }

@@ -1,6 +1,7 @@
 #include "Driver.h"
 #include <iostream>
 #include "memory.h"
+
 int print_error(const char* message) {
 	std::cout << message << std::endl;
 	std::cin.get();
@@ -17,29 +18,19 @@ int main()
 		std::this_thread::sleep_for(std::chrono::milliseconds(500));
 	}
 
-	std::cout << "\n";
+	std::cout << "\nfound driver\n";
 	int error = GetLastError();
 	if (error == ERROR_FILE_NOT_FOUND) {
 		return print_error("failed to open driver");
 	}
 
-	/*while (true) {
-		DWORD bytesReturned = 0;
-		RANDOM_NUMBER_REQUEST request = {};
-		if (!DeviceIoControl(handle, IO_RANDOM_NUMBER_REQUEST, &request, sizeof(KERNEL_READ_REQUEST), &request, sizeof(KERNEL_READ_REQUEST), &bytesReturned, NULL)) {
-			return print_error("failed to open ioctl");
-		}
+	
+	while (true) {
 
-		std::cout << request.Value << " was our request" << std::endl;
-		std::this_thread::sleep_for(std::chrono::seconds(1));
-	}*/
-
-	ULONG procid = 8308;
-	WriteMemory(handle, procid, 0x00007FF68BA35628, 20, sizeof(int));
-	int k = ReadMemory<int>(handle, procid, 0x000000B94E6FF780, sizeof(int));
-	std::cout << k;
+		std::cout << "read " << ReadMemory<bool>(handle, (ULONG)16896, 0x00007FF7C2365034) << "\n";
+		std::this_thread::sleep_for(std::chrono::milliseconds(500));
+	}
 	
 	CloseHandle(handle);
-	getchar();
 	return 0;
 }
