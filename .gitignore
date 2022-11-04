@@ -59,3 +59,9 @@ dkms.conf
 
 ./TestUserMode/.vs
 ./TestUserMode/x64
+/TestApplication/x64/Release
+/TestApplication/.vs/TestApplication
+/TestDriver/.vs/TestDriver
+/TestDriver/x64/Release
+/TestUserMode/.vs/TestUserMode
+/TestUserMode/x64/Release

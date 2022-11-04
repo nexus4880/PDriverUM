@@ -34,8 +34,8 @@ int main()
 		std::this_thread::sleep_for(std::chrono::seconds(1));
 	}*/
 
-	ULONG procid = 19276;
-	WriteMemory(handle, procid, 0x000000B94E6FF780, 20, sizeof(int));
+	ULONG procid = 8308;
+	WriteMemory(handle, procid, 0x00007FF68BA35628, 20, sizeof(int));
 	int k = ReadMemory<int>(handle, procid, 0x000000B94E6FF780, sizeof(int));
 	std::cout << k;
 	
