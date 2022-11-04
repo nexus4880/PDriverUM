@@ -50,3 +50,12 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+./TestApplication/.vs
+./TestApplication/x64
+
+./TestDriver/.vs
+./TestDriver/x64
+
+./TestUserMode/.vs
+./TestUserMode/x64
