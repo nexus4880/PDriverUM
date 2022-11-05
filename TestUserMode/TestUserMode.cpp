@@ -31,7 +31,7 @@ int main()
 		return print_error("failed to open driver");
 	}
 
-	std::cout << "read (0) or write (1): ";
+	std::cout << "read (0) or write (1) or get base address (2): ";
 	int method = 0;
 	std::cin >> method;
 	ULONG pid = 0;
@@ -66,6 +66,19 @@ int main()
 				std::this_thread::sleep_for(std::chrono::milliseconds(500));
 			}
 
+			break;
+		}
+		case 2: {
+			KERNEL_GET_BASE_ADDRESS_REQUEST getBaseAddressRequest;
+			getBaseAddressRequest.ProcessId = pid;
+			getBaseAddressRequest.BaseAddress = 0;
+			if (DeviceIoControl(handle, IO_GET_BASE_ADDRESS_REQUEST, &getBaseAddressRequest, sizeof(KERNEL_GET_BASE_ADDRESS_REQUEST), 0, 0, NULL, NULL)) {
+				std::cout << "read " << getBaseAddressRequest.BaseAddress << std::endl;
+			}
+			else {
+				return print_error("failed to make request");
+			}
+			std::cin.get();
 			break;
 		}
 		default: {

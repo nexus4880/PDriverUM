@@ -12,6 +12,8 @@ NTSTATUS NTAPI MmCopyVirtualMemory
 	PSIZE_T ReturnSize
 );
 
+NTKERNELAPI PVOID PsGetProcessSectionBaseAddress(__in PEPROCESS Process);
+
 NTSTATUS KeReadProcessMemory(PEPROCESS Process, PVOID SourceAddress, PVOID TargetAddress, SIZE_T Size)
 {
 	PEPROCESS SourceProcess = Process;

@@ -1,4 +1,4 @@
-#pragma warning (disable : 4100)
+#pragma warning (disable : 4100 4047)
 
 #define PRINT_ERRORS 0
 #include "Driver.h"
@@ -123,6 +123,23 @@ NTSTATUS IoControl(PDEVICE_OBJECT pDeviceObject, PIRP pIrp)
 
 			DbgPrintEx(0, 0, "IO_WRITE_REQUEST: PID(%lu) | WRITTEN_VALUE(%lu) | ADDRESS(%lli) | SIZE(%i)", writeRequest->ProcessId, writeRequest->Value, writeRequest->Address, writeRequest->Size);
 			bytes = sizeof(KERNEL_WRITE_REQUEST);
+			break;
+		}
+		case IO_GET_BASE_ADDRESS_REQUEST: {
+			PKERNEL_GET_BASE_ADDRESS_REQUEST getBaseAddressRequest = (PKERNEL_GET_BASE_ADDRESS_REQUEST)pIrp->AssociatedIrp.SystemBuffer;
+			PEPROCESS Process;
+			status = PsLookupProcessByProcessId((HANDLE)getBaseAddressRequest->ProcessId, &Process);
+			if (NT_SUCCESS(status)) {
+				getBaseAddressRequest->BaseAddress = PsGetProcessSectionBaseAddress(Process);
+			}
+			else {
+#if PRINT_ERRORS
+				DbgPrintEx(0, 0, "PsLookupProcessByProcessId failed");
+#endif
+			}
+
+			DbgPrintEx(0, 0, "IO_GET_BASE_ADDRESS_REQUEST: PID(%lu) | BASE_ADDRESS(%lli)", getBaseAddressRequest->ProcessId, getBaseAddressRequest->BaseAddress);
+			bytes = sizeof(KERNEL_GET_BASE_ADDRESS_REQUEST);
 			break;
 		}
 		default: {
