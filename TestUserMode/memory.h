@@ -1,5 +1,6 @@
 #pragma once
 #include "../TestDriver/driver.h"
+#include <Windows.h>
 
 char* ReadMemoryA(HANDLE DriverHandle, unsigned long ProcId, long long Address, unsigned long size) {
 	_KERNEL_READ_REQUEST kernelRead;
@@ -33,10 +34,6 @@ bool WriteMemory(HANDLE driverHandle, unsigned long procId, long long address, P
 	KernelWrite.Value = (char*)malloc(size);
 	memcpy(KernelWrite.Value, pData, size);
 	KernelWrite.Size = size;
-	for (int i = 0; i < size; i++) {
-		std::cout << (int)KernelWrite.Value[i] << ", ";
-	}
-
 	if (DeviceIoControl(driverHandle, IO_WRITE_REQUEST, &KernelWrite, sizeof(KernelWrite), 0, 0, &Bytes, NULL)) {
 		return true;
 	}

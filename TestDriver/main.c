@@ -100,7 +100,7 @@ NTSTATUS IoControl(PDEVICE_OBJECT pDeviceObject, PIRP pIrp)
 #endif
 			}
 
-			DbgPrintEx(0, 0, "IO_READ_REQUEST: PID(%lu) | READ_VALUE(%lu) | ADDRESS(%lli) | SIZE(%i)", readRequest->ProcessId, readRequest->Value, readRequest->Address, readRequest->Size);
+			DbgPrintEx(0, 0, "IO_READ_REQUEST: PID(%lu) | ADDRESS(%lli) | SIZE(%i)", readRequest->ProcessId, readRequest->Address, readRequest->Size);
 			bytes = sizeof(KERNEL_READ_REQUEST);
 			break;
 		}
@@ -122,7 +122,7 @@ NTSTATUS IoControl(PDEVICE_OBJECT pDeviceObject, PIRP pIrp)
 #endif
 			}
 
-			DbgPrintEx(0, 0, "IO_WRITE_REQUEST: PID(%lu) | WRITTEN_VALUE(%lu) | ADDRESS(%lli) | SIZE(%i)", writeRequest->ProcessId, writeRequest->Value, writeRequest->Address, writeRequest->Size);
+			DbgPrintEx(0, 0, "IO_WRITE_REQUEST: PID(%lu) | ADDRESS(%lli) | SIZE(%i)", writeRequest->ProcessId, writeRequest->Address, writeRequest->Size);
 			bytes = sizeof(KERNEL_WRITE_REQUEST);
 			break;
 		}
