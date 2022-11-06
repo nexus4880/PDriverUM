@@ -24,6 +24,7 @@ NTSTATUS KeReadProcessMemory(PEPROCESS Process, PVOID SourceAddress, PVOID Targe
 	else
 		return STATUS_ACCESS_DENIED;
 }
+
 NTSTATUS KeWriteProcessMemory(PEPROCESS Process, PVOID SourceAddress, PVOID TargetAddress, SIZE_T Size)
 {
 	PEPROCESS SourceProcess = PsGetCurrentProcess();

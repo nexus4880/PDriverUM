@@ -1,8 +1,9 @@
 #pragma warning (disable : 4100 4047)
 
 #define PRINT_ERRORS 0
-#include "Driver.h"
-#include "Memory.h"
+#define DRIVER 1
+#include "driver.h"
+#include "memory.h"
 
 PDEVICE_OBJECT _pDeviceObject;
 UNICODE_STRING _dev, _dos;
@@ -108,7 +109,7 @@ NTSTATUS IoControl(PDEVICE_OBJECT pDeviceObject, PIRP pIrp)
 			PEPROCESS Process;
 			status = PsLookupProcessByProcessId((HANDLE)writeRequest->ProcessId, &Process);
 			if (NT_SUCCESS(status)) {
-				status = KeWriteProcessMemory(Process, &writeRequest->Value, (PVOID)writeRequest->Address, writeRequest->Size);
+				status = KeWriteProcessMemory(Process, writeRequest->Value, (PVOID)writeRequest->Address, writeRequest->Size);
 				if (!NT_SUCCESS(status)) {
 #if PRINT_ERRORS
 					DbgPrintEx(0, 0, "KeWriteProcessMemory failed");

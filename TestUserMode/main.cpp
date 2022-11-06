@@ -1,5 +1,7 @@
-#include "Driver.h"
+#include "../TestDriver/driver.h"
 #include <iostream>
+#include <Windows.h>
+#include <thread>
 #include "memory.h"
 
 PHANDLE pHandle;
@@ -15,6 +17,10 @@ int print_error(const char* message) {
 	return -1;
 }
 
+struct Vector3 {
+	float x, y, z;
+};
+
 int main()
 {
 	std::cout << "finding driver";
@@ -26,6 +32,28 @@ int main()
 
 	pHandle = &handle;
 	std::cout << "\nfound driver\n";
+	if (WriteMemory<Vector3>(handle, 9144, 0x00007FF787385040, Vector3{ 2.3f, 4.6f, 8.10f })) {
+		std::cout << "wrote" << std::endl;
+	}
+	else {
+		std::cout << "failed to write" << std::endl;
+	}
+
+
+
+	std::cin.get();
+
+
+
+
+
+
+
+
+
+
+
+	return 0;
 	int error = GetLastError();
 	if (error == ERROR_FILE_NOT_FOUND) {
 		return print_error("failed to open driver");
@@ -47,7 +75,8 @@ int main()
 		case 0: {
 		std::cout << "running, press escape to quit\n";
 			while (!(GetAsyncKeyState(VK_ESCAPE) & 1)) {
-				std::cout << "read " << ReadMemory(handle, pid, address, size) << "\n";
+				int value = 0;
+				std::cout << "read " << ReadMemory<int>(handle, pid, address, value) << "\n";
 				std::this_thread::sleep_for(std::chrono::milliseconds(500));
 			}
 
@@ -59,7 +88,7 @@ int main()
 			std::cin >> value;
 			std::cout << "running, press escape to quit\n";
 			while (!(GetAsyncKeyState(VK_ESCAPE) & 1)) {
-				if (!WriteMemory(handle, pid, address, value, size)) {
+				if (!WriteMemory<int>(handle, pid, address, value)) {
 					return print_error("failed to write");
 				}
 
@@ -69,10 +98,10 @@ int main()
 			break;
 		}
 		case 2: {
-			KERNEL_GET_BASE_ADDRESS_REQUEST getBaseAddressRequest;
+			_KERNEL_GET_BASE_ADDRESS_REQUEST getBaseAddressRequest;
 			getBaseAddressRequest.ProcessId = pid;
 			getBaseAddressRequest.BaseAddress = 0;
-			if (DeviceIoControl(handle, IO_GET_BASE_ADDRESS_REQUEST, &getBaseAddressRequest, sizeof(KERNEL_GET_BASE_ADDRESS_REQUEST), 0, 0, NULL, NULL)) {
+			if (DeviceIoControl(handle, IO_GET_BASE_ADDRESS_REQUEST, &getBaseAddressRequest, sizeof(_KERNEL_GET_BASE_ADDRESS_REQUEST), 0, 0, NULL, NULL)) {
 				std::cout << "read " << getBaseAddressRequest.BaseAddress << std::endl;
 			}
 			else {

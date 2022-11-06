@@ -1,8 +1,7 @@
 #pragma once
-#include "stdafx.h"
-#include "Driver.h"
+#include "../TestDriver/driver.h"
 
-ULONG ReadMemory(HANDLE DriverHandle, ULONG ProcId, long long Address, ULONG size) {
+char* ReadMemoryA(HANDLE DriverHandle, unsigned long ProcId, long long Address, unsigned long size) {
 	_KERNEL_READ_REQUEST kernelRead;
 	kernelRead.Address = Address;
 	kernelRead.ProcessId = ProcId;
@@ -12,22 +11,33 @@ ULONG ReadMemory(HANDLE DriverHandle, ULONG ProcId, long long Address, ULONG siz
 		return kernelRead.Value;
 	}
 
-	return 0;
+	return nullptr;
 }
 
 template <typename T>
-T ReadMemory(HANDLE DriverHandle, ULONG ProcId, long long Address) {
-	return (T)ReadMemory(DriverHandle, ProcId, Address, sizeof(T));
+bool ReadMemory(HANDLE DriverHandle, unsigned long ProcId, long long Address, const T &t) {
+	char* data = ReadMemoryA(DriverHandle, ProcId, Address, sizeof(T));
+	if (!data) {
+		return false;
+	}
+	
+	memcpy((void*)&t, data, sizeof(T));
+	return true;
 }
 
-bool WriteMemory(HANDLE DriverHandle, ULONG ProcId, long long Address, ULONG Value, ULONG Size) {
-	KERNEL_WRITE_REQUEST KernelWrite;
+bool WriteMemory(HANDLE driverHandle, unsigned long procId, long long address, PVOID pData, unsigned long size) {
+	_KERNEL_WRITE_REQUEST KernelWrite;
 	DWORD Bytes;
-	KernelWrite.ProcessId = ProcId;
-	KernelWrite.Address = Address;
-	KernelWrite.Value = Value;
-	KernelWrite.Size = Size;
-	if (DeviceIoControl(DriverHandle, IO_WRITE_REQUEST, &KernelWrite, sizeof(KernelWrite), 0, 0, &Bytes, NULL)) {
+	KernelWrite.ProcessId = procId;
+	KernelWrite.Address = address;
+	KernelWrite.Value = (char*)malloc(size);
+	memcpy(KernelWrite.Value, pData, size);
+	KernelWrite.Size = size;
+	for (int i = 0; i < size; i++) {
+		std::cout << (int)KernelWrite.Value[i] << ", ";
+	}
+
+	if (DeviceIoControl(driverHandle, IO_WRITE_REQUEST, &KernelWrite, sizeof(KernelWrite), 0, 0, &Bytes, NULL)) {
 		return true;
 	}
 
@@ -36,6 +46,6 @@ bool WriteMemory(HANDLE DriverHandle, ULONG ProcId, long long Address, ULONG Val
 
 
 template <typename T>
-bool WriteMemory(HANDLE DriverHandle, ULONG ProcId, long long Address, T t) {
-	return WriteMemory(DriverHandle, ProcId, Address, (ULONG)t, sizeof(T));
+bool WriteMemory(HANDLE DriverHandle, unsigned long ProcId, long long Address, const T &data) {
+	return WriteMemory(DriverHandle, ProcId, Address, (PVOID)&data, sizeof(T));
 }
