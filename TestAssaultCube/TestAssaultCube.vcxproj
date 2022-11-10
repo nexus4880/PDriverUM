@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{f0430d6f-982e-4c6f-92be-311f023e7f9d}</ProjectGuid>
-    <RootNamespace>TestUserMode</RootNamespace>
+    <ProjectGuid>{00a1e6db-d138-4aeb-8368-70f16ad90242}</ProjectGuid>
+    <RootNamespace>TestAssaultCube</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -127,14 +127,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="driverinterop.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="memory.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="driverinterop.hpp" />
-    <ClInclude Include="memory.h" />
-    <ClInclude Include="utils.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

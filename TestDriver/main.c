@@ -130,6 +130,7 @@ NTSTATUS IoControl(PDEVICE_OBJECT pDeviceObject, PIRP pIrp)
 			PKERNEL_GET_BASE_ADDRESS_REQUEST getBaseAddressRequest = (PKERNEL_GET_BASE_ADDRESS_REQUEST)pIrp->AssociatedIrp.SystemBuffer;
 			PEPROCESS Process;
 			status = PsLookupProcessByProcessId((HANDLE)getBaseAddressRequest->ProcessId, &Process);
+			getBaseAddressRequest->BaseAddress = 0;
 			if (NT_SUCCESS(status)) {
 				getBaseAddressRequest->BaseAddress = PsGetProcessSectionBaseAddress(Process);
 			}

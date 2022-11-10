@@ -17,11 +17,39 @@ public:
 	}
 
 	bool is_valid() {
-		return m_pDriverHandle != nullptr && *m_pDriverHandle != INVALID_HANDLE_VALUE && m_processId != 0;
+		return m_pDriverHandle != nullptr && *m_pDriverHandle != INVALID_HANDLE_VALUE && m_processId != 0 && get_proc_base_address() != 0;
+	}
+
+	long long get_proc_base_address() {
+		_KERNEL_GET_BASE_ADDRESS_REQUEST getBaseAddressRequest;
+		getBaseAddressRequest.ProcessId = this->m_processId;
+		if (!DeviceIoControl(*this->m_pDriverHandle, IO_GET_BASE_ADDRESS_REQUEST, &getBaseAddressRequest, sizeof(_KERNEL_GET_BASE_ADDRESS_REQUEST), &getBaseAddressRequest, sizeof(_KERNEL_GET_BASE_ADDRESS_REQUEST), 0, 0)) {
+			return 0;
+		}
+
+		return getBaseAddressRequest.BaseAddress;
+	}
+
+	inline bool read_with_size(long long address, void* t, const int &size) {
+		if (!this->is_valid()) {
+			return false;
+		}
+
+		_KERNEL_READ_REQUEST readRequest;
+		readRequest.Address = address;
+		readRequest.ProcessId = this->m_processId;
+		readRequest.Size = size;
+		if (!DeviceIoControl(*this->m_pDriverHandle, IO_READ_REQUEST, &readRequest, sizeof(_KERNEL_READ_REQUEST), &readRequest, sizeof(_KERNEL_READ_REQUEST), 0, 0)) {
+			return false;
+		}
+
+		memcpy(t, readRequest.Value, size);
+
+		return true;
 	}
 
 	template <typename T>
-	bool read(long long address, const T& t) {
+	inline bool read(long long address, const T& t) {
 		if (!this->is_valid()) {
 			return false;
 		}
@@ -30,7 +58,6 @@ public:
 		readRequest.Address = address;
 		readRequest.ProcessId = this->m_processId;
 		readRequest.Size = sizeof(T);
-
 		if (!DeviceIoControl(*this->m_pDriverHandle, IO_READ_REQUEST, &readRequest, sizeof(_KERNEL_READ_REQUEST), &readRequest, sizeof(_KERNEL_READ_REQUEST), 0, 0)) {
 			return false;
 		}
@@ -41,7 +68,7 @@ public:
 	}
 
 	template <typename T>
-	bool write(long long address, const T& data) {
+	inline bool write(long long address, const T& data) {
 		if (!this->is_valid()) {
 			return false;
 		}
