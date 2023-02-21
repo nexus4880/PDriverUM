@@ -17,6 +17,7 @@ NTSTATUS CloseCall(PDEVICE_OBJECT pDeviceObject, PIRP pIrp);
 #define IO_READ_REQUEST CTL_CODE(SIOCTL_TYPE, 0x903, METHOD_BUFFERED, FILE_ANY_ACCESS)
 #define IO_WRITE_REQUEST CTL_CODE(SIOCTL_TYPE, 0x904, METHOD_BUFFERED, FILE_ANY_ACCESS)
 #define IO_GET_BASE_ADDRESS_REQUEST CTL_CODE(SIOCTL_TYPE, 0x905, METHOD_BUFFERED, FILE_ANY_ACCESS)
+#define IO_GET_MODULE_BASE_REQUEST CTL_CODE(SIOCTL_TYPE, 0x906, METHOD_BUFFERED, FILE_ANY_ACCESS)
 
 #ifdef DRIVER
 typedef 
@@ -25,8 +26,8 @@ struct _KERNEL_READ_REQUEST
 {
 	unsigned long ProcessId;
 	long long Address;
-	char Value[32];
 	unsigned long Size;
+	char Value[32];
 }
 
 #ifdef DRIVER
@@ -41,8 +42,8 @@ struct _KERNEL_WRITE_REQUEST
 {
 	unsigned long ProcessId;
 	long long Address;
-	char* Value;
 	unsigned long Size;
+	char* Value;
 }
 
 #ifdef DRIVER
@@ -53,13 +54,25 @@ KERNEL_WRITE_REQUEST, * PKERNEL_WRITE_REQUEST
 #ifdef DRIVER
 typedef
 #endif
-struct _KERNEL_GET_BASE_ADDRESS_REQUEST
-{
+struct _KERNEL_GET_BASE_ADDRESS_REQUEST {
 	unsigned long ProcessId;
 	long long BaseAddress;
 }
 
 #ifdef DRIVER
 KERNEL_GET_BASE_ADDRESS_REQUEST, * PKERNEL_GET_BASE_ADDRESS_REQUEST
+#endif
+;
+
+
+#ifdef DRIVER
+typedef
+#endif
+struct _KERNEL_GET_BASE_MODULE_ADDRESS_REQUEST {
+	long long Value;
+}
+
+#ifdef DRIVER
+KERNEL_GET_BASE_MODULE_ADDRESS_REQUEST, * PKERNEL_GET_BASE_MODULE_ADDRESS_REQUEST
 #endif
 ;

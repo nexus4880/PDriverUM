@@ -21,24 +21,18 @@ public:
 	}
 
 	long long get_proc_base_address() {
-		_KERNEL_GET_BASE_ADDRESS_REQUEST getBaseAddressRequest;
-		getBaseAddressRequest.ProcessId = this->m_processId;
-		if (!DeviceIoControl(*this->m_pDriverHandle, IO_GET_BASE_ADDRESS_REQUEST, &getBaseAddressRequest, sizeof(_KERNEL_GET_BASE_ADDRESS_REQUEST), &getBaseAddressRequest, sizeof(_KERNEL_GET_BASE_ADDRESS_REQUEST), 0, 0)) {
-			return 0;
-		}
+		_KERNEL_GET_BASE_ADDRESS_REQUEST getBaseAddressRequest{this->m_processId, 0};
+		DeviceIoControl(*this->m_pDriverHandle, IO_GET_BASE_ADDRESS_REQUEST, &getBaseAddressRequest, sizeof(_KERNEL_GET_BASE_ADDRESS_REQUEST), &getBaseAddressRequest, sizeof(_KERNEL_GET_BASE_ADDRESS_REQUEST), 0, 0);
 
 		return getBaseAddressRequest.BaseAddress;
 	}
 
-	inline bool read_with_size(long long address, void* t, const int &size) {
+	bool read_with_size(long long address, void* t, const int& size) {
 		if (!this->is_valid()) {
 			return false;
 		}
 
-		_KERNEL_READ_REQUEST readRequest;
-		readRequest.Address = address;
-		readRequest.ProcessId = this->m_processId;
-		readRequest.Size = size;
+		_KERNEL_READ_REQUEST readRequest{this->m_processId, address, size};
 		if (!DeviceIoControl(*this->m_pDriverHandle, IO_READ_REQUEST, &readRequest, sizeof(_KERNEL_READ_REQUEST), &readRequest, sizeof(_KERNEL_READ_REQUEST), 0, 0)) {
 			return false;
 		}
@@ -49,15 +43,12 @@ public:
 	}
 
 	template <typename T>
-	inline bool read(long long address, const T& t) {
+	bool read(long long address, const T& t) {
 		if (!this->is_valid()) {
 			return false;
 		}
 
-		_KERNEL_READ_REQUEST readRequest;
-		readRequest.Address = address;
-		readRequest.ProcessId = this->m_processId;
-		readRequest.Size = sizeof(T);
+		_KERNEL_READ_REQUEST readRequest{this->m_processId, address, sizeof(T)};
 		if (!DeviceIoControl(*this->m_pDriverHandle, IO_READ_REQUEST, &readRequest, sizeof(_KERNEL_READ_REQUEST), &readRequest, sizeof(_KERNEL_READ_REQUEST), 0, 0)) {
 			return false;
 		}
@@ -68,25 +59,24 @@ public:
 	}
 
 	template <typename T>
-	inline bool write(long long address, const T& data) {
+	bool write(long long address, const T& data) {
 		if (!this->is_valid()) {
 			return false;
 		}
 
-		_KERNEL_WRITE_REQUEST writeRequest;
-		DWORD bytes;
-		writeRequest.ProcessId = this->m_processId;
-		writeRequest.Address = address;
-		writeRequest.Value = (char*)malloc(sizeof(T));
-		memcpy(writeRequest.Value, (void*)&data, sizeof(T));
-		writeRequest.Size = sizeof(T);
-		if (DeviceIoControl(*this->m_pDriverHandle, IO_WRITE_REQUEST, &writeRequest, sizeof(_KERNEL_WRITE_REQUEST), 0, 0, &bytes, NULL)) {
-			return true;
-		}
+		_KERNEL_WRITE_REQUEST writeRequest{this->m_processId, address, sizeof(T), (char*)&data};
+		DWORD bytes = 0;
 
-		return false;
+		return DeviceIoControl(*this->m_pDriverHandle, IO_WRITE_REQUEST, &writeRequest, sizeof(_KERNEL_WRITE_REQUEST), nullptr, NULL, &bytes, NULL);
 	}
 
+	long long GetModuleBaseAddress() {
+		_KERNEL_GET_BASE_MODULE_ADDRESS_REQUEST request{0};
+		DWORD bytes = 0;
+		DeviceIoControl(*this->m_pDriverHandle, IO_GET_MODULE_BASE_REQUEST, &request, sizeof(_KERNEL_GET_BASE_MODULE_ADDRESS_REQUEST), &request, sizeof(_KERNEL_GET_BASE_MODULE_ADDRESS_REQUEST), &bytes, NULL);
+
+		return request.Value;
+	}
 private:
 	PHANDLE m_pDriverHandle;
 	int m_processId;

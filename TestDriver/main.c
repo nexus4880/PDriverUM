@@ -1,5 +1,6 @@
 #pragma warning (disable : 4100 4047)
 
+#define PRINT_DEBUG 0
 #define PRINT_ERRORS 0
 #define DRIVER 1
 #include "driver.h"
@@ -7,6 +8,7 @@
 
 PDEVICE_OBJECT _pDeviceObject;
 UNICODE_STRING _dev, _dos;
+long long baseModuleAddress = 0;
 
 NTSTATUS DriverEntry(PDRIVER_OBJECT pDriverObject, PUNICODE_STRING registryPath) {
 	DbgPrintEx(0, 0, "Initializing TestDriver");
@@ -50,8 +52,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT pDriverObject, PUNICODE_STRING registryPath)
 	return STATUS_SUCCESS;
 }
 
-NTSTATUS UnloadDriver(PDRIVER_OBJECT pDriverObject)
-{
+NTSTATUS UnloadDriver(PDRIVER_OBJECT pDriverObject) {
 	DbgPrintEx(0, 0, "Unloading TestDriver");
 	if (!NT_SUCCESS(PsRemoveLoadImageNotifyRoutine(ImageLoadCallback))) {
 		DbgPrintEx(0, 0, "Failed to remove load image routine");
@@ -71,12 +72,14 @@ NTSTATUS UnloadDriver(PDRIVER_OBJECT pDriverObject)
 }
 
 // (wcsstr(FullImageName->Buffer, L"\\path\\to\\file.dll")
-void ImageLoadCallback(PUNICODE_STRING fullImageName, HANDLE processId, PIMAGE_INFO pImageInfo)
-{
+void ImageLoadCallback(PUNICODE_STRING fullImageName, HANDLE processId, PIMAGE_INFO pImageInfo) {
+	if (wcsstr(fullImageName->Buffer, L"UnityPlayer.dll")) {
+		baseModuleAddress = (long long)pImageInfo->ImageBase;
+		DbgPrintEx(0, 0, "Found base module address: %lli", baseModuleAddress);
+	}
 }
 
-NTSTATUS IoControl(PDEVICE_OBJECT pDeviceObject, PIRP pIrp)
-{
+NTSTATUS IoControl(PDEVICE_OBJECT pDeviceObject, PIRP pIrp) {
 	NTSTATUS status = STATUS_SUCCESS;
 	ULONG bytes = 0;
 	PIO_STACK_LOCATION stack = IoGetCurrentIrpStackLocation(pIrp);
@@ -100,7 +103,9 @@ NTSTATUS IoControl(PDEVICE_OBJECT pDeviceObject, PIRP pIrp)
 #endif
 			}
 
+#if PRINT_DEBUG
 			DbgPrintEx(0, 0, "IO_READ_REQUEST: PID(%lu) | ADDRESS(%lli) | SIZE(%i)", readRequest->ProcessId, readRequest->Address, readRequest->Size);
+#endif
 			bytes = sizeof(KERNEL_READ_REQUEST);
 			break;
 		}
@@ -122,7 +127,9 @@ NTSTATUS IoControl(PDEVICE_OBJECT pDeviceObject, PIRP pIrp)
 #endif
 			}
 
+#if PRINT_DEBUG
 			DbgPrintEx(0, 0, "IO_WRITE_REQUEST: PID(%lu) | ADDRESS(%lli) | SIZE(%i)", writeRequest->ProcessId, writeRequest->Address, writeRequest->Size);
+#endif
 			bytes = sizeof(KERNEL_WRITE_REQUEST);
 			break;
 		}
@@ -140,8 +147,22 @@ NTSTATUS IoControl(PDEVICE_OBJECT pDeviceObject, PIRP pIrp)
 #endif
 			}
 
+#if PRINT_DEBUG
 			DbgPrintEx(0, 0, "IO_GET_BASE_ADDRESS_REQUEST: PID(%lu) | BASE_ADDRESS(%lli)", getBaseAddressRequest->ProcessId, getBaseAddressRequest->BaseAddress);
+#endif
 			bytes = sizeof(KERNEL_GET_BASE_ADDRESS_REQUEST);
+			break;
+		}
+		case IO_GET_MODULE_BASE_REQUEST: {
+			PKERNEL_GET_BASE_MODULE_ADDRESS_REQUEST getBaseAddressRequest = (PKERNEL_GET_BASE_MODULE_ADDRESS_REQUEST)pIrp->AssociatedIrp.SystemBuffer;
+			if (baseModuleAddress) {
+				getBaseAddressRequest->Value = baseModuleAddress;
+				bytes = sizeof(KERNEL_GET_BASE_MODULE_ADDRESS_REQUEST);
+			}
+			else {
+				status = STATUS_CONNECTION_DISCONNECTED;
+			}
+
 			break;
 		}
 		default: {
@@ -159,8 +180,7 @@ NTSTATUS IoControl(PDEVICE_OBJECT pDeviceObject, PIRP pIrp)
 	return status;
 }
 
-NTSTATUS CreateCall(PDEVICE_OBJECT pDeviceObject, PIRP pIrp)
-{
+NTSTATUS CreateCall(PDEVICE_OBJECT pDeviceObject, PIRP pIrp) {
 	DbgPrintEx(0, 0, "CreateCall");
 	pIrp->IoStatus.Status = STATUS_SUCCESS;
 	pIrp->IoStatus.Information = 0;
@@ -169,8 +189,7 @@ NTSTATUS CreateCall(PDEVICE_OBJECT pDeviceObject, PIRP pIrp)
 	return STATUS_SUCCESS;
 }
 
-NTSTATUS CloseCall(PDEVICE_OBJECT pDeviceObject, PIRP pIrp)
-{
+NTSTATUS CloseCall(PDEVICE_OBJECT pDeviceObject, PIRP pIrp) {
 	DbgPrintEx(0, 0, "CloseCall");
 	pIrp->IoStatus.Status = STATUS_SUCCESS;
 	pIrp->IoStatus.Information = 0;
