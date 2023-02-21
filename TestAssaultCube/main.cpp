@@ -16,13 +16,16 @@ int main() {
 
 	std::cout << "\nfound driver\n";
     DriverInterop driver(&handle, L"CPPRaylib.exe");
-	Vector3 value{0.f, 0.f, 0.f};
-	while (driver.is_valid()) {
-		driver.read<Vector3>(157368980, value);
-		printf_s("%f, %f, %f\n", value.x, value.y, value.z);
+	PTRW address = driver.get_proc_base_address();
+	if (!address) {
+		throw;
 	}
 
-	std::cin.get();
+	PTRW offsets[3] = {0x00027448, 0, 0x64};
+	Vector3 value{0.f, 0.f, 0.f};
+	while (driver.read_chain<Vector3>(address, offsets, 3, value)) {
+		printf_s("%f, %f, %f\n", value.x, value.y, value.z);
+	}
 
 	return 0;
 }
