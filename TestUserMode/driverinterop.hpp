@@ -31,17 +31,6 @@ public:
 		return getBaseAddressRequest.BaseAddress;
 	}
 
-	bool read_with_size(PTRW address, void* t, const int& size) {
-		_KERNEL_READ_REQUEST readRequest{this->m_processId, address, size};
-		if (!DeviceIoControl(*this->m_pDriverHandle, IO_READ_REQUEST, &readRequest, sizeof(_KERNEL_READ_REQUEST), &readRequest, sizeof(_KERNEL_READ_REQUEST), 0, 0)) {
-			return false;
-		}
-
-		memcpy(t, readRequest.Value, size);
-
-		return true;
-	}
-
 	template <typename T>
 	bool read(PTRW address, const T& t) {
 		_KERNEL_READ_REQUEST readRequest{this->m_processId, address, sizeof(T), (unsigned char*)&t};
