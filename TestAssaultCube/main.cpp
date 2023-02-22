@@ -3,7 +3,46 @@
 #include "../TestUserMode/driverinterop.hpp"
 
 struct Vector3 {
-	float x, y, z;
+    float x, y, z;
+};
+
+struct Vector2 {
+    float x, y;
+};
+
+struct Camera3D {
+    Vector3 position;
+    Vector3 target;
+    Vector3 up;
+    float fovy;
+    int projection;
+};
+
+struct rlFPCamera {
+    int ControlsKeys[11];
+    Vector3 MoveSpeed;
+    Vector2 TurnSpeed;
+    bool UseMouse;
+    bool InvertY;
+    float MouseSensitivity;
+    float MinimumViewY;
+    float MaximumViewY;
+    float ViewBobbleFreq;
+    float ViewBobbleMagnatude;
+    float ViewBobbleWaverMagnitude;
+    Vector3 CameraPosition;
+    float PlayerEyesPosition;
+    Vector2 FOV;
+    float TargetDistance;
+    Vector2 ViewAngles;
+    float CurrentBobble;
+    bool Focused;
+    bool AllowFlight;
+    Camera3D ViewCamera;
+    Vector3 Forward;
+    Vector3 Right;
+    double NearPlane;
+    double FarPlane;
 };
 
 int main() {
@@ -16,15 +55,11 @@ int main() {
 
 	std::cout << "\nfound driver\n";
     DriverInterop driver(&handle, L"CPPRaylib.exe");
-	PTRW address = driver.get_proc_base_address();
-	if (!address) {
-		throw;
-	}
-
-	PTRW offsets[3] = {0x00027448, 0, 0x64};
-	Vector3 value{0.f, 0.f, 0.f};
-	while (driver.read_chain<Vector3>(address, offsets, 3, value)) {
-		printf_s("%f, %f, %f\n", value.x, value.y, value.z);
+    rlFPCamera cam{};
+    PTRW base = 115189976;
+	while (driver.read<rlFPCamera>(base, cam)) {
+        driver.write<float>(base + offsetof(rlFPCamera, PlayerEyesPosition), cam.PlayerEyesPosition + 1.f);
+		std::this_thread::sleep_for(std::chrono::milliseconds(150));
 	}
 
 	return 0;

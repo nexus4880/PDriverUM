@@ -1,7 +1,8 @@
 #pragma warning (disable : 4100 4047)
 
+#define POOL_TAG 1582
 #define PRINT_DEBUG 0
-#define PRINT_ERRORS 0
+#define PRINT_ERRORS 1
 #define DRIVER 1
 #include "driver.h"
 #include "memory.h"
@@ -90,7 +91,8 @@ NTSTATUS IoControl(PDEVICE_OBJECT pDeviceObject, PIRP pIrp) {
 			PKERNEL_READ_REQUEST readRequest = (PKERNEL_READ_REQUEST)pIrp->AssociatedIrp.SystemBuffer;
 			status = PsLookupProcessByProcessId((HANDLE)readRequest->ProcessId, &proc);
 			if (NT_SUCCESS(status)) {
-				status = KeReadProcessMemory(proc, (PVOID)readRequest->Address, &readRequest->Value, readRequest->Size);
+				DbgPrintEx(0, 0, "Attempting to read %i bytes", readRequest->Size);
+				status = KeReadProcessMemory(proc, (PVOID)readRequest->Address, readRequest->Value, readRequest->Size);
 				if (!NT_SUCCESS(status)) {
 #if PRINT_ERRORS
 					DbgPrintEx(0, 0, "failed to KeReadProcessMemory");

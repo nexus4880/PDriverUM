@@ -2,6 +2,7 @@
 #include <Windows.h>
 #include "../TestDriver/driver.h"
 #include "utils.hpp"
+#include <array>
 
 typedef
 #if AMD64
@@ -43,24 +44,22 @@ public:
 
 	template <typename T>
 	bool read(PTRW address, const T& t) {
-		_KERNEL_READ_REQUEST readRequest{this->m_processId, address, sizeof(T)};
+		_KERNEL_READ_REQUEST readRequest{this->m_processId, address, sizeof(T), (unsigned char*)&t};
 		if (!DeviceIoControl(*this->m_pDriverHandle, IO_READ_REQUEST, &readRequest, sizeof(_KERNEL_READ_REQUEST), &readRequest, sizeof(_KERNEL_READ_REQUEST), 0, 0)) {
 			return false;
 		}
 
-		memcpy((void*)&t, readRequest.Value, sizeof(T));
-
 		return true;
 	}
 
-	template <typename T>
-	bool read_chain(PTRW address, PTRW* chain, size_t chainSize, const T& t) {
-		if (chainSize <= 0) {
+	template <typename T, size_t size>
+	bool read_chain(PTRW address, std::array<PTRW, size> chain, const T& t) {
+		if (size <= 0) {
 			return false;
 		}
 
-		for (int i = 0; i < chainSize; i++) {
-			if (i != chainSize - 1) {
+		for (int i = 0; i < size; i++) {
+			if (i != size - 1) {
 				if (!this->read<PTRW>(address + chain[i], address)) {
 					return false;
 				}
@@ -75,7 +74,7 @@ public:
 
 	template <typename T>
 	bool write(PTRW address, const T& data) {
-		_KERNEL_WRITE_REQUEST writeRequest{this->m_processId, address, sizeof(T), (char*)&data};
+		_KERNEL_WRITE_REQUEST writeRequest{this->m_processId, address, sizeof(T), (unsigned char*)&data};
 		DWORD bytes = 0;
 
 		return DeviceIoControl(*this->m_pDriverHandle, IO_WRITE_REQUEST, &writeRequest, sizeof(_KERNEL_WRITE_REQUEST), nullptr, NULL, &bytes, NULL);

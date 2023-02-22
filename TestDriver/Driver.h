@@ -26,8 +26,8 @@ struct _KERNEL_READ_REQUEST
 {
 	unsigned long ProcessId;
 	long long Address;
-	unsigned long Size;
-	char Value[32];
+	SIZE_T Size;
+	unsigned char* Value;
 }
 
 #ifdef DRIVER
@@ -42,8 +42,8 @@ struct _KERNEL_WRITE_REQUEST
 {
 	unsigned long ProcessId;
 	long long Address;
-	unsigned long Size;
-	char* Value;
+	SIZE_T Size;
+	unsigned char* Value;
 }
 
 #ifdef DRIVER
