@@ -1,5 +1,11 @@
 #pragma once
 
+typedef long
+#if AMD64
+long
+#endif
+driver_ptr_t;
+
 #ifdef DRIVER
 #include <ntifs.h>
 #include <ntddk.h>
@@ -25,7 +31,7 @@ typedef
 struct _KERNEL_READ_REQUEST
 {
 	unsigned long ProcessId;
-	long long Address;
+	driver_ptr_t Address;
 	SIZE_T Size;
 	unsigned char* Value;
 }
@@ -41,7 +47,7 @@ typedef
 struct _KERNEL_WRITE_REQUEST
 {
 	unsigned long ProcessId;
-	long long Address;
+	driver_ptr_t Address;
 	SIZE_T Size;
 	unsigned char* Value;
 }
@@ -56,7 +62,7 @@ typedef
 #endif
 struct _KERNEL_GET_BASE_ADDRESS_REQUEST {
 	unsigned long ProcessId;
-	long long BaseAddress;
+	driver_ptr_t BaseAddress;
 }
 
 #ifdef DRIVER
@@ -64,12 +70,11 @@ KERNEL_GET_BASE_ADDRESS_REQUEST, * PKERNEL_GET_BASE_ADDRESS_REQUEST
 #endif
 ;
 
-
 #ifdef DRIVER
 typedef
 #endif
 struct _KERNEL_GET_BASE_MODULE_ADDRESS_REQUEST {
-	long long Value;
+	driver_ptr_t Value;
 }
 
 #ifdef DRIVER

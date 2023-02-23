@@ -9,7 +9,7 @@
 
 PDEVICE_OBJECT _pDeviceObject;
 UNICODE_STRING _dev, _dos;
-long long baseModuleAddress = 0;
+driver_ptr_t baseModuleAddress = 0;
 
 NTSTATUS DriverEntry(PDRIVER_OBJECT pDriverObject, PUNICODE_STRING registryPath) {
 	DbgPrintEx(0, 0, "Initializing TestDriver");
@@ -75,7 +75,7 @@ NTSTATUS UnloadDriver(PDRIVER_OBJECT pDriverObject) {
 // (wcsstr(FullImageName->Buffer, L"\\path\\to\\file.dll")
 void ImageLoadCallback(PUNICODE_STRING fullImageName, HANDLE processId, PIMAGE_INFO pImageInfo) {
 	if (wcsstr(fullImageName->Buffer, L"UnityPlayer.dll")) {
-		baseModuleAddress = (long long)pImageInfo->ImageBase;
+		baseModuleAddress = (driver_ptr_t)pImageInfo->ImageBase;
 		DbgPrintEx(0, 0, "Found base module address: %lli", baseModuleAddress);
 	}
 }
@@ -91,7 +91,6 @@ NTSTATUS IoControl(PDEVICE_OBJECT pDeviceObject, PIRP pIrp) {
 			PKERNEL_READ_REQUEST readRequest = (PKERNEL_READ_REQUEST)pIrp->AssociatedIrp.SystemBuffer;
 			status = PsLookupProcessByProcessId((HANDLE)readRequest->ProcessId, &proc);
 			if (NT_SUCCESS(status)) {
-				DbgPrintEx(0, 0, "Attempting to read %i bytes", readRequest->Size);
 				status = KeReadProcessMemory(proc, (PVOID)readRequest->Address, readRequest->Value, readRequest->Size);
 				if (!NT_SUCCESS(status)) {
 #if PRINT_ERRORS

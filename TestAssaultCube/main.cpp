@@ -1,5 +1,6 @@
 #include <iostream>
 #include <thread>
+#define AMD64 1
 #include "../TestUserMode/driverinterop.hpp"
 
 struct Vector3 {
@@ -56,9 +57,9 @@ int main() {
 	std::cout << "\nfound driver\n";
     DriverInterop driver(&handle, L"CPPRaylib.exe");
     rlFPCamera cam{};
-    PTRW base = 115189976;
-	while (driver.read<rlFPCamera>(base, cam)) {
-        driver.write<float>(base + offsetof(rlFPCamera, PlayerEyesPosition), cam.PlayerEyesPosition + 1.f);
+    PTRW base = driver.get_proc_base_address();
+	while (driver.read_chain<rlFPCamera, 3>(base, {0x000264D0, 0x0, 0x8}, cam)) {
+        printf_s("%f, %f, %f\n", cam.CameraPosition.x, cam.CameraPosition.y, cam.CameraPosition.z);
 		std::this_thread::sleep_for(std::chrono::milliseconds(150));
 	}
 
