@@ -4,14 +4,6 @@
 #include "utils.hpp"
 #include <array>
 
-typedef
-#if AMD64
-long long
-#else
-long
-#endif
-PTRW;
-
 class DriverInterop {
 public:
 	DriverInterop(HANDLE handle, const wchar_t* processName) : handle(handle) {
@@ -24,7 +16,7 @@ public:
 		}
 	}
 
-	PTRW get_proc_base_address() {
+	driver_ptr_t GetProcessBaseAddress() {
 		_KERNEL_GET_BASE_ADDRESS_REQUEST getBaseAddressRequest{this->processId, 0};
 		DeviceIoControl(this->handle, IO_GET_BASE_ADDRESS_REQUEST, &getBaseAddressRequest, sizeof(_KERNEL_GET_BASE_ADDRESS_REQUEST), &getBaseAddressRequest, sizeof(_KERNEL_GET_BASE_ADDRESS_REQUEST), 0, 0);
 
@@ -32,29 +24,30 @@ public:
 	}
 
 	template <typename T>
-	bool read(PTRW address, const T& t) {
-		_KERNEL_READ_REQUEST readRequest{this->processId, address, sizeof(T), (unsigned char*)&t};
-		if (!DeviceIoControl(this->handle, IO_READ_REQUEST, &readRequest, sizeof(_KERNEL_READ_REQUEST), &readRequest, sizeof(_KERNEL_READ_REQUEST), 0, 0)) {
+	bool Read(driver_ptr_t address, T* tPtr) {
+		if (!tPtr) {
 			return false;
 		}
 
-		return true;
+		_KERNEL_READ_REQUEST readRequest{this->processId, address, sizeof(T), (unsigned char*)tPtr};
+		return DeviceIoControl(this->handle, IO_READ_REQUEST, &readRequest, sizeof(_KERNEL_READ_REQUEST), &readRequest, sizeof(_KERNEL_READ_REQUEST), 0, 0);
 	}
 
 	template <typename T, size_t size>
-	bool read_chain(PTRW address, std::array<PTRW, size> chain, const T& t) {
+	bool ReadChain(driver_ptr_t address, std::array<driver_ptr_t, size> chain, T* tPtr) {
 		if (size <= 0) {
 			return false;
 		}
 
 		for (int i = 0; i < size; i++) {
 			if (i != size - 1) {
-				if (!this->read<PTRW>(address + chain[i], address)) {
+				if (!this->Read<driver_ptr_t>(address + chain[i], &address)) {
 					return false;
 				}
 			}
 			else {
-				return this->read<T>(address + chain[i], t);
+				printf_s("in_method: %p\n", address);
+				return this->Read<T>(address + chain[i], tPtr);
 			}
 		}
 
@@ -62,17 +55,14 @@ public:
 	}
 
 	template <typename T>
-	bool write(PTRW address, const T& data) {
-		_KERNEL_WRITE_REQUEST writeRequest{this->processId, address, sizeof(T), (unsigned char*)&data};
-		DWORD bytes = 0;
-
-		return DeviceIoControl(this->handle, IO_WRITE_REQUEST, &writeRequest, sizeof(_KERNEL_WRITE_REQUEST), nullptr, NULL, &bytes, NULL);
+	bool Write(driver_ptr_t address, const T& value) {
+		_KERNEL_WRITE_REQUEST writeRequest{this->processId, address, sizeof(T), (unsigned char*)&value};
+		return DeviceIoControl(this->handle, IO_WRITE_REQUEST, &writeRequest, sizeof(_KERNEL_WRITE_REQUEST), nullptr, NULL, nullptr, NULL);
 	}
 
-	PTRW GetModuleBaseAddress() {
+	driver_ptr_t GetModuleBaseAddress() {
 		_KERNEL_GET_BASE_MODULE_ADDRESS_REQUEST request{0};
-		DWORD bytes = 0;
-		DeviceIoControl(this->handle, IO_GET_MODULE_BASE_REQUEST, &request, sizeof(_KERNEL_GET_BASE_MODULE_ADDRESS_REQUEST), &request, sizeof(_KERNEL_GET_BASE_MODULE_ADDRESS_REQUEST), &bytes, NULL);
+		DeviceIoControl(this->handle, IO_GET_MODULE_BASE_REQUEST, &request, sizeof(_KERNEL_GET_BASE_MODULE_ADDRESS_REQUEST), &request, sizeof(_KERNEL_GET_BASE_MODULE_ADDRESS_REQUEST), nullptr, NULL);
 
 		return request.Value;
 	}
