@@ -47,7 +47,7 @@ struct rlFPCamera {
 };
 
 int main() {
-    HANDLE handle = {};
+    HANDLE handle;
     std::cout << "finding driver";
     while ((handle = CreateFileW(L"\\\\.\\TestDriver", GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE) {
         std::cout << ".";
@@ -56,12 +56,17 @@ int main() {
 
     std::cout << "\nfound driver\n";
     DriverInterop driver(handle, L"CPPRaylib.exe");
-    rlFPCamera cam{};
-    PTRW base = driver.get_proc_base_address();
-    while (driver.read_chain<rlFPCamera, 3>(base, {0x000264D0, 0x0, 0x8}, cam)) {
-        printf_s("%f, %f, %f\n", cam.CameraPosition.x, cam.CameraPosition.y, cam.CameraPosition.z);
-        std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    rlFPCamera fpCam{};
+    driver_ptr_t cameraAddress = driver.GetProcessBaseAddress();
+    driver.ReadChainAddress<driver_ptr_t, 3>(cameraAddress, {0x000264D0, 0x00, 0x8}, cameraAddress);
+    while (driver.Read<rlFPCamera>(cameraAddress, &fpCam)) {
+        printf_s("%f, %f, %f\n", fpCam.CameraPosition.x, fpCam.CameraPosition.y, fpCam.CameraPosition.z);
+        driver.Write<float>(cameraAddress + offsetof(rlFPCamera, CameraPosition) + sizeof(float), fpCam.CameraPosition.y + 1.f);
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
+
+    std::cin.get();
+    
     return 0;
 }

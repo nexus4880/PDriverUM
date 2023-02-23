@@ -30,6 +30,7 @@ public:
 		}
 
 		_KERNEL_READ_REQUEST readRequest{this->processId, address, sizeof(T), (unsigned char*)tPtr};
+		
 		return DeviceIoControl(this->handle, IO_READ_REQUEST, &readRequest, sizeof(_KERNEL_READ_REQUEST), &readRequest, sizeof(_KERNEL_READ_REQUEST), 0, 0);
 	}
 
@@ -46,8 +47,27 @@ public:
 				}
 			}
 			else {
-				printf_s("in_method: %p\n", address);
 				return this->Read<T>(address + chain[i], tPtr);
+			}
+		}
+
+		return false;
+	}
+
+	template <typename T, size_t size>
+	bool ReadChainAddress(driver_ptr_t address, std::array<driver_ptr_t, size> chain, driver_ptr_t& targetAddress) {
+		if (size <= 0) {
+			return false;
+		}
+
+		for (int i = 0; i < size; i++) {
+			if (i != size - 1) {
+				if (!this->Read<driver_ptr_t>(address + chain[i], &address)) {
+					return false;
+				}
+			}
+			else {
+				targetAddress = address + chain[i];
 			}
 		}
 
@@ -57,6 +77,7 @@ public:
 	template <typename T>
 	bool Write(driver_ptr_t address, const T& value) {
 		_KERNEL_WRITE_REQUEST writeRequest{this->processId, address, sizeof(T), (unsigned char*)&value};
+		
 		return DeviceIoControl(this->handle, IO_WRITE_REQUEST, &writeRequest, sizeof(_KERNEL_WRITE_REQUEST), nullptr, NULL, nullptr, NULL);
 	}
 
@@ -68,5 +89,5 @@ public:
 	}
 private:
 	HANDLE handle;
-	int processId;
+	DWORD processId;
 };
