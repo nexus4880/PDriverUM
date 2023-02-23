@@ -30,7 +30,7 @@ typedef
 #endif
 struct _KERNEL_READ_REQUEST
 {
-	unsigned long ProcessId;
+	DWORD ProcessId;
 	driver_ptr_t Address;
 	SIZE_T Size;
 	unsigned char* Value;
@@ -46,7 +46,7 @@ typedef
 #endif
 struct _KERNEL_WRITE_REQUEST
 {
-	unsigned long ProcessId;
+	DWORD ProcessId;
 	driver_ptr_t Address;
 	SIZE_T Size;
 	unsigned char* Value;
@@ -61,7 +61,7 @@ KERNEL_WRITE_REQUEST, * PKERNEL_WRITE_REQUEST
 typedef
 #endif
 struct _KERNEL_GET_BASE_ADDRESS_REQUEST {
-	unsigned long ProcessId;
+	DWORD ProcessId;
 	driver_ptr_t BaseAddress;
 }
 

@@ -57,10 +57,9 @@ int main() {
     std::cout << "\nfound driver\n";
     DriverInterop driver(handle, L"CPPRaylib.exe");
     rlFPCamera fpCam{};
-    driver_ptr_t cameraAddress = driver.GetProcessBaseAddress();
-    driver.ReadChainAddress<driver_ptr_t, 3>(cameraAddress, {0x000264D0, 0x00, 0x8}, cameraAddress);
+    driver_ptr_t cameraAddress = 0;
+    driver.ReadChainAddress<driver_ptr_t, 3>(driver.GetProcessBaseAddress(), {0x000264D0, 0x00, 0x8}, cameraAddress);
     while (driver.Read<rlFPCamera>(cameraAddress, &fpCam)) {
-        printf_s("%f, %f, %f\n", fpCam.CameraPosition.x, fpCam.CameraPosition.y, fpCam.CameraPosition.z);
         driver.Write<float>(cameraAddress + offsetof(rlFPCamera, CameraPosition) + sizeof(float), fpCam.CameraPosition.y + 1.f);
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
