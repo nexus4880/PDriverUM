@@ -36,7 +36,7 @@ public:
 
 	template <typename T, size_t size>
 	bool ReadChain(driver_ptr_t address, std::array<driver_ptr_t, size> chain, T* tPtr) {
-		if (size <= 0) {
+		if (size <= 1) {
 			return false;
 		}
 
