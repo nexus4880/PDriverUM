@@ -1,8 +1,7 @@
 #pragma warning (disable : 4100 4047)
 
-#define POOL_TAG 1582
 #define PRINT_DEBUG 0
-#define PRINT_ERRORS 1
+#define PRINT_ERRORS 0
 #define DRIVER 1
 #include "driver.h"
 #include "memory.h"
@@ -76,7 +75,6 @@ NTSTATUS UnloadDriver(PDRIVER_OBJECT pDriverObject) {
 void ImageLoadCallback(PUNICODE_STRING fullImageName, HANDLE processId, PIMAGE_INFO pImageInfo) {
 	if (wcsstr(fullImageName->Buffer, L"UnityPlayer.dll")) {
 		baseModuleAddress = (driver_ptr_t)pImageInfo->ImageBase;
-		DbgPrintEx(0, 0, "Found base module address: %lli", baseModuleAddress);
 	}
 }
 
@@ -155,10 +153,10 @@ NTSTATUS IoControl(PDEVICE_OBJECT pDeviceObject, PIRP pIrp) {
 			break;
 		}
 		case IO_GET_MODULE_BASE_REQUEST: {
-			PKERNEL_GET_BASE_MODULE_ADDRESS_REQUEST getBaseAddressRequest = (PKERNEL_GET_BASE_MODULE_ADDRESS_REQUEST)pIrp->AssociatedIrp.SystemBuffer;
+			driver_ptr_t* getBaseAddressRequest = (driver_ptr_t*)pIrp->AssociatedIrp.SystemBuffer;
 			if (baseModuleAddress) {
-				getBaseAddressRequest->Value = baseModuleAddress;
-				bytes = sizeof(KERNEL_GET_BASE_MODULE_ADDRESS_REQUEST);
+				*getBaseAddressRequest = baseModuleAddress;
+				bytes = sizeof(driver_ptr_t);
 			}
 			else {
 				status = STATUS_CONNECTION_DISCONNECTED;

@@ -6,6 +6,8 @@ long
 #endif
 driver_ptr_t;
 
+typedef unsigned long DWORD;
+
 #ifdef DRIVER
 #include <ntifs.h>
 #include <ntddk.h>
@@ -67,17 +69,5 @@ struct _KERNEL_GET_BASE_ADDRESS_REQUEST {
 
 #ifdef DRIVER
 KERNEL_GET_BASE_ADDRESS_REQUEST, * PKERNEL_GET_BASE_ADDRESS_REQUEST
-#endif
-;
-
-#ifdef DRIVER
-typedef
-#endif
-struct _KERNEL_GET_BASE_MODULE_ADDRESS_REQUEST {
-	driver_ptr_t Value;
-}
-
-#ifdef DRIVER
-KERNEL_GET_BASE_MODULE_ADDRESS_REQUEST, * PKERNEL_GET_BASE_MODULE_ADDRESS_REQUEST
 #endif
 ;

@@ -25,13 +25,13 @@ public:
 
 	template <typename T>
 	bool Read(driver_ptr_t address, T* tPtr) {
-		if (!tPtr) {
+		if (!address || !tPtr) {
 			return false;
 		}
 
-		_KERNEL_READ_REQUEST readRequest{this->processId, address, sizeof(T), (unsigned char*)tPtr};
+		_KERNEL_READ_REQUEST request{this->processId, address, sizeof(T), (unsigned char*)tPtr};
 		
-		return DeviceIoControl(this->handle, IO_READ_REQUEST, &readRequest, sizeof(_KERNEL_READ_REQUEST), &readRequest, sizeof(_KERNEL_READ_REQUEST), 0, 0);
+		return DeviceIoControl(this->handle, IO_READ_REQUEST, &request, sizeof(_KERNEL_READ_REQUEST), &request, sizeof(_KERNEL_READ_REQUEST), 0, 0);
 	}
 
 	template <typename T, size_t size>
@@ -55,37 +55,41 @@ public:
 	}
 
 	template <typename T, size_t size>
-	bool ReadChainAddress(driver_ptr_t address, std::array<driver_ptr_t, size> chain, driver_ptr_t& targetAddress) {
-		if (size <= 0) {
-			return false;
+	driver_ptr_t ReadChainAddress(driver_ptr_t address, std::array<driver_ptr_t, size> chain) {
+		if (!address || size <= 0) {
+			return 0;
 		}
 
 		for (int i = 0; i < size; i++) {
 			if (i != size - 1) {
 				if (!this->Read<driver_ptr_t>(address + chain[i], &address)) {
-					return false;
+					return 0;
 				}
 			}
 			else {
-				targetAddress = address + chain[i];
+				return address + chain[i];
 			}
 		}
 
-		return false;
+		return 0;
 	}
 
 	template <typename T>
 	bool Write(driver_ptr_t address, const T& value) {
-		_KERNEL_WRITE_REQUEST writeRequest{this->processId, address, sizeof(T), (unsigned char*)&value};
+		if (!address) {
+			return false;
+		}
+
+		_KERNEL_WRITE_REQUEST request{this->processId, address, sizeof(T), (unsigned char*)&value};
 		
-		return DeviceIoControl(this->handle, IO_WRITE_REQUEST, &writeRequest, sizeof(_KERNEL_WRITE_REQUEST), nullptr, NULL, nullptr, NULL);
+		return DeviceIoControl(this->handle, IO_WRITE_REQUEST, &request, sizeof(_KERNEL_WRITE_REQUEST), nullptr, NULL, nullptr, NULL);
 	}
 
 	driver_ptr_t GetModuleBaseAddress() {
-		_KERNEL_GET_BASE_MODULE_ADDRESS_REQUEST request{0};
-		DeviceIoControl(this->handle, IO_GET_MODULE_BASE_REQUEST, &request, sizeof(_KERNEL_GET_BASE_MODULE_ADDRESS_REQUEST), &request, sizeof(_KERNEL_GET_BASE_MODULE_ADDRESS_REQUEST), nullptr, NULL);
+		driver_ptr_t request = 0;
+		DeviceIoControl(this->handle, IO_GET_MODULE_BASE_REQUEST, &request, sizeof(driver_ptr_t), &request, sizeof(driver_ptr_t), nullptr, NULL);
 
-		return request.Value;
+		return request;
 	}
 private:
 	HANDLE handle;
