@@ -5,7 +5,7 @@ NTSTATUS KeReadProcessMemory(PEPROCESS Process, PVOID SourceAddress, PVOID Targe
 	PEPROCESS SourceProcess = Process;
 	PEPROCESS TargetProcess = PsGetCurrentProcess();
 	SIZE_T Result;
-	if (NT_SUCCESS(MmCopyVirtualMemory(SourceProcess, SourceAddress, TargetProcess, TargetAddress, Size, KernelMode, &Result)))
+	if (NT_SUCCESS(MmCopyVirtualMemory(SourceProcess, SourceAddress, TargetProcess, TargetAddress, Size, UserMode, &Result)))
 		return STATUS_SUCCESS;
 	else
 		return STATUS_ACCESS_DENIED;
@@ -17,7 +17,7 @@ NTSTATUS KeWriteProcessMemory(PEPROCESS Process, PVOID SourceAddress, PVOID Targ
 	PEPROCESS TargetProcess = Process;
 	SIZE_T Result;
 
-	if (NT_SUCCESS(MmCopyVirtualMemory(SourceProcess, SourceAddress, TargetProcess, TargetAddress, Size, KernelMode, &Result)))
+	if (NT_SUCCESS(MmCopyVirtualMemory(SourceProcess, SourceAddress, TargetProcess, TargetAddress, Size, UserMode, &Result)))
 		return STATUS_SUCCESS;
 	else
 		return STATUS_ACCESS_DENIED;
